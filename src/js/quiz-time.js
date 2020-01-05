@@ -36,6 +36,7 @@ export class QuizTime extends window.HTMLElement {
         event.preventDefault()
       }
     })
+    
     this._getQuestion()
   }
 
