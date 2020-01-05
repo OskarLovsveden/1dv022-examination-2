@@ -1,13 +1,27 @@
 const template = document.createElement('template')
 template.innerHTML = `
 <div id="questionDiv">
-    <h1 id="currentQuestion"></h1>
-    <label for="quiztime" class="active">Write here:</label><br>
-    <input type="text" id="quiztime">
+    <h1 id="question"></h1>
+    <div id="currentQuestion"></div>
     <h1 id="answerKey"></h1>
-</div>  
+</div>
 `
-
+const inputTemplate = document.createElement('template')
+inputTemplate.innerHTML = `
+<label for="quiztime">Write here:</label><br>
+<input type="text" id="quiztime">
+`
+const radioTemplate = document.createElement('template')
+radioTemplate.innerHTML = `
+<input type="radio">
+`
+/**
+ * Custom element representing a Quiz.
+ *
+ * @export
+ * @class QuizTime
+ * @extends {window.HTMLElement}
+ */
 export class QuizTime extends window.HTMLElement {
   constructor () {
     super()
@@ -18,6 +32,7 @@ export class QuizTime extends window.HTMLElement {
     this.shadowRoot.appendChild(template.content.cloneNode(true))
 
     this._questionDiv = this.shadowRoot.querySelector('#questionDiv')
+    this._currentQuestionDiv = this._questionDiv.querySelector('#currentQuestion')
     this._questionUrl = 'http://vhost3.lnu.se:20080/question/1'
     this._answerUrl = ''
 
@@ -28,7 +43,9 @@ export class QuizTime extends window.HTMLElement {
     this._questionDiv.addEventListener('keypress', (event) => {
       if (event.keyCode === 13) {
         this._answer = event.target.value
-        this._answerQuestion(this._answerUrl, { answer: `${this._answer}` })
+        this._answerQuestion(this._answerUrl, {
+          answer: `${this._answer}`
+        })
           .then((data) => {
             console.log(data)
             this._questionDiv.querySelector('#answerKey')
@@ -50,9 +67,14 @@ export class QuizTime extends window.HTMLElement {
     const response = await window.fetch(this._questionUrl)
     return response.json()
       .then((myJson) => {
-        console.log(myJson)
-        const currentQuestion = this._questionDiv.querySelector('#currentQuestion')
-        currentQuestion.textContent = myJson.question
+        if (myJson.alternatives) {
+          this._radioButtons(myJson.alternatives)
+        } else {
+          // this._textInput(myJson)
+
+        }
+        const question = this._questionDiv.querySelector('#question')
+        question.textContent = myJson.question
         this._answerUrl = myJson.nextURL
       })
   }
@@ -75,12 +97,41 @@ export class QuizTime extends window.HTMLElement {
     })
     return response.json()
   }
+
+  /**
+   * Runs if the current question has multiple choices.
+   *
+   * @param {Object} data - Object with the alternatives available for the current question.
+   * @memberof QuizTime
+   */
+  _radioButtons (data) {
+    const alts = Object.values(data)
+    for (let i = 0; i < alts.length; i++) {
+      const radio = radioTemplate.content.cloneNode(true)
+
+      radio.firstElementChild.setAttribute('id', `${i}`)
+      radio.firstElementChild.setAttribute('name', 'alternative')
+      radio.firstElementChild.setAttribute('value', `${alts[i]}`)
+
+      const label = document.createElement('label')
+      label.setAttribute('for', `${i}`)
+      label.textContent = ` ${alts[i]}`
+
+      const br = document.createElement('br')
+
+      this._currentQuestionDiv.appendChild(radio)
+      this._currentQuestionDiv.appendChild(label)
+
+      if (i < alts.length - 1) {
+        this._currentQuestionDiv.appendChild(br)
+      }
+    }
+  }
 }
 
 window.customElements.define('quiz-time', QuizTime)
 
-// New template for radiobuttons?
-// Check if question has alternatives or not and base presentation of that.
 // More comments...
 // Error handling on wrong answers
-//
+// timer
+// keep score, local storage?
