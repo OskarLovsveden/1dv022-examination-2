@@ -55,6 +55,8 @@ export class QuizTime extends window.HTMLElement {
     this._timerCount = 20
     this._score = null
     this._playerStats = null
+    this._numOfQuestions = null
+    this._correctanswers = null
 
     this._timer = null
   }
@@ -67,11 +69,7 @@ export class QuizTime extends window.HTMLElement {
           answer: `${this._answer}`
         })
           .then((data) => {
-            this._questionDiv.querySelector('#answerKey').textContent = data.message
-            if (data.nextURL) {
-              this._questionUrl = data.nextURL
-              this._getQuestion()
-            }
+            this._getNextQuestion(data)
           })
         event.preventDefault()
       }
@@ -91,44 +89,18 @@ export class QuizTime extends window.HTMLElement {
         answer: `${this._answer}`
       })
         .then((data) => {
-          this._questionDiv.querySelector('#answerKey').textContent = data.message
-          if (data.nextURL) {
-            this._questionUrl = data.nextURL
-            this._getQuestion()
-          }
+          this._getNextQuestion(data)
         })
     })
 
-    this._submitUsernameBtn.addEventListener('click', () => {
-      if (/\S/.test(this._usernameInput.value)) {
-        this._usernameDiv.innerHTML = `<h3>Username: ${this._usernameInput.value}</h3>`
-        this._username = this._usernameInput.value
-        this._getQuestion()
-      } else {
-        this._usernameInput.focus()
-      }
-    })
-
-    this._usernameDiv.addEventListener('keypress', (event) => {
-      if (event.keyCode === 13) {
-        if (/\S/.test(this._usernameInput.value)) {
-          this._usernameDiv.innerHTML = `<h3>Username: ${this._usernameInput.value}</h3>`
-          this._username = this._usernameInput.value
-          this._getQuestion()
-        } else {
-          this._usernameInput.focus()
-        }
-        event.preventDefault()
-      }
-    })
-
+    this._addUsernameEvent()
     this._usernameInput.focus()
   }
 
   /**
-   * Returns a response based of the current questions URL and parses it.
+   * Gets the next question in line.
    *
-   * @returns A promise
+   * @returns An Object with the data of the next question in line.
    * @memberof QuizTime
    */
   async _getQuestion () {
@@ -161,7 +133,7 @@ export class QuizTime extends window.HTMLElement {
    *
    * @param {string} url - The URL to send the answer to.
    * @param {Object} data - The answer to be sent.
-   * @returns A promise
+   * @returns An object corresponding to right/wrong answer.
    * @memberof QuizTime
    */
   async _answerQuestion (url, data) {
@@ -222,10 +194,62 @@ export class QuizTime extends window.HTMLElement {
       console.log('TIMES UP!')
     }
   }
+
+  /**
+   * Adds the event for submitting the entered username.
+   *
+   * @memberof QuizTime
+   */
+  _addUsernameEvent () {
+    this._submitUsernameBtn.addEventListener('click', () => {
+      this._validateUsername()
+    })
+
+    this._usernameDiv.addEventListener('keypress', (event) => {
+      if (event.keyCode === 13) {
+        this._validateUsername()
+        event.preventDefault()
+      }
+    })
+  }
+
+  /**
+   * Validates the entered username.
+   *
+   * @memberof QuizTime
+   */
+  _validateUsername () {
+    if (/\S/.test(this._usernameInput.value)) {
+      this._usernameDiv.innerHTML = `<h3>Username: ${this._usernameInput.value}</h3>`
+      this._username = this._usernameInput.value
+      this._getQuestion()
+    } else {
+      this._usernameInput.focus()
+    }
+  }
+
+  /**
+   * Gets the next question if available.
+   *
+   * @param {Object} data - An object with the next questions data.
+   * @memberof QuizTime
+   */
+  _getNextQuestion (data) {
+    console.log('runs')
+    this._questionDiv.querySelector('#answerKey').textContent = data.message
+    if (data.nextURL) {
+      this._questionUrl = data.nextURL
+      this._getQuestion()
+    } else {
+      // IF SCORE > 0, store username and score as an object in this._playerStats
+      if (this._score > 0) {
+        console.log('store this shit')
+      }
+    }
+  }
 }
 
 window.customElements.define('quiz-time', QuizTime)
 
-// More comments...
-// Error handling on wrong answers
+// Error handling on wrong answers? not prio
 // keep score, local storage - object data = { username: score }
