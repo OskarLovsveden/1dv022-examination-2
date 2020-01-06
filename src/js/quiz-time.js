@@ -36,7 +36,7 @@ export class QuizTime extends window.HTMLElement {
     this._currentQuestionDiv = this._questionDiv.querySelector('#currentQuestion')
     this._submitAnswer = this._questionDiv.querySelector('#submitAnswer')
 
-    this._questionUrl = 'http://vhost3.lnu.se:20080/question/21'
+    this._questionUrl = 'http://vhost3.lnu.se:20080/question/1'
     this._answerUrl = ''
 
     this._answer = null
@@ -51,10 +51,33 @@ export class QuizTime extends window.HTMLElement {
         })
           .then((data) => {
             console.log(data)
-            this._questionDiv.querySelector('#answerKey')
+            this._questionDiv.querySelector('#answerKey').textContent = data.message
+            this._questionUrl = data.nextURL
+            this._getQuestion()
           })
         event.preventDefault()
       }
+    })
+
+    this._submitAnswer.addEventListener('click', () => {
+      const inputs = this._currentQuestionDiv.querySelectorAll('input')
+      for (let i = 0; i < inputs.length; i++) {
+        if (inputs[i].checked) {
+          this._answer = inputs[i].value
+        }
+        if (inputs[i].type === 'text') {
+          this._answer = inputs[i].value
+        }
+      }
+      this._answerQuestion(this._answerUrl, {
+        answer: `${this._answer}`
+      })
+        .then((data) => {
+          console.log(data)
+          this._questionDiv.querySelector('#answerKey').textContent = data.message
+          this._questionUrl = data.nextURL
+          this._getQuestion()
+        })
     })
 
     this._getQuestion()
@@ -110,25 +133,28 @@ export class QuizTime extends window.HTMLElement {
    * @memberof QuizTime
    */
   _radioButtons (data) {
-    const alts = Object.values(data)
+    const alts = Object.entries(data)
+    let id = 0
 
-    for (let i = 0; i < alts.length; i++) {
+    for (const [key, value] of Object.entries(data)) {
+      id += 1
+
       const radio = radioTemplate.content.cloneNode(true)
 
-      radio.firstElementChild.setAttribute('id', `${i}`)
+      radio.firstElementChild.setAttribute('id', `${id}`)
       radio.firstElementChild.setAttribute('name', 'alternative')
-      radio.firstElementChild.setAttribute('value', `${alts[i]}`)
+      radio.firstElementChild.setAttribute('value', `${key}`)
 
       const label = document.createElement('label')
-      label.setAttribute('for', `${i}`)
-      label.textContent = ` ${alts[i]}`
+      label.setAttribute('for', `${id}`)
+      label.textContent = ` ${value}`
 
       const br = document.createElement('br')
 
       this._currentQuestionDiv.appendChild(radio)
       this._currentQuestionDiv.appendChild(label)
 
-      if (i < alts.length - 1) {
+      if (id < alts.length) {
         this._currentQuestionDiv.appendChild(br)
       }
     }
