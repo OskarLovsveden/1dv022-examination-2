@@ -3,6 +3,7 @@ template.innerHTML = `
 <div id="questionDiv">
     <h1 id="question"></h1>
     <div id="currentQuestion"></div>
+    <button id="submitAnswer">Submit Answer</button>
     <h1 id="answerKey"></h1>
 </div>
 `
@@ -33,7 +34,9 @@ export class QuizTime extends window.HTMLElement {
 
     this._questionDiv = this.shadowRoot.querySelector('#questionDiv')
     this._currentQuestionDiv = this._questionDiv.querySelector('#currentQuestion')
-    this._questionUrl = 'http://vhost3.lnu.se:20080/question/1'
+    this._submitAnswer = this._questionDiv.querySelector('#submitAnswer')
+
+    this._questionUrl = 'http://vhost3.lnu.se:20080/question/21'
     this._answerUrl = ''
 
     this._answer = null
@@ -64,14 +67,16 @@ export class QuizTime extends window.HTMLElement {
    * @memberof QuizTime
    */
   async _getQuestion () {
+    this._currentQuestionDiv.innerHTML = ''
     const response = await window.fetch(this._questionUrl)
+
     return response.json()
       .then((myJson) => {
         if (myJson.alternatives) {
           this._radioButtons(myJson.alternatives)
         } else {
-          // this._textInput(myJson)
-
+          const text = inputTemplate.content.cloneNode(true)
+          this._currentQuestionDiv.appendChild(text)
         }
         const question = this._questionDiv.querySelector('#question')
         question.textContent = myJson.question
@@ -106,6 +111,7 @@ export class QuizTime extends window.HTMLElement {
    */
   _radioButtons (data) {
     const alts = Object.values(data)
+
     for (let i = 0; i < alts.length; i++) {
       const radio = radioTemplate.content.cloneNode(true)
 
