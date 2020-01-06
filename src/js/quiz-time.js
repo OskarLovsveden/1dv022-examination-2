@@ -1,12 +1,14 @@
 const template = document.createElement('template')
 template.innerHTML = `
+<h1>Quiz Time!</h1>
 <div id="usernameDiv">
   <label for="username">Username:</label><br>
   <input type="text" id="username" placeholder="Enter your name!">
   <button id="submitUsername">Start</button>
 </div>
 <div id="questionDiv">
-    <h1 id="question"></h1>
+    <h2 id="question"></h2>
+    <h3 id="timer"></h3>
     <div id="currentQuestion"></div>
     <button id="submitAnswer">Submit Answer</button>
     <h1 id="answerKey"></h1>
@@ -43,11 +45,18 @@ export class QuizTime extends window.HTMLElement {
     this._usernameDiv = this.shadowRoot.querySelector('#usernameDiv')
     this._submitUsernameBtn = this.shadowRoot.querySelector('#submitUsername')
     this._usernameInput = this.shadowRoot.querySelector('#username')
+    this._timerText = this.shadowRoot.querySelector('#timer')
 
     this._questionUrl = 'http://vhost3.lnu.se:20080/question/1'
     this._answerUrl = ''
 
+    this._username = ''
     this._answer = null
+    this._timerCount = 20
+    this._score = null
+    this._playerStats = null
+
+    this._timer = null
   }
 
   connectedCallback () {
@@ -58,7 +67,6 @@ export class QuizTime extends window.HTMLElement {
           answer: `${this._answer}`
         })
           .then((data) => {
-            console.log(data)
             this._questionDiv.querySelector('#answerKey').textContent = data.message
             if (data.nextURL) {
               this._questionUrl = data.nextURL
@@ -83,7 +91,6 @@ export class QuizTime extends window.HTMLElement {
         answer: `${this._answer}`
       })
         .then((data) => {
-          console.log(data)
           this._questionDiv.querySelector('#answerKey').textContent = data.message
           if (data.nextURL) {
             this._questionUrl = data.nextURL
@@ -94,7 +101,8 @@ export class QuizTime extends window.HTMLElement {
 
     this._submitUsernameBtn.addEventListener('click', () => {
       if (/\S/.test(this._usernameInput.value)) {
-        this._usernameDiv.textContent = `Username: ${this._usernameInput.value}`
+        this._usernameDiv.innerHTML = `<h3>Username: ${this._usernameInput.value}</h3>`
+        this._username = this._usernameInput.value
         this._getQuestion()
       } else {
         this._usernameInput.focus()
@@ -104,7 +112,8 @@ export class QuizTime extends window.HTMLElement {
     this._usernameDiv.addEventListener('keypress', (event) => {
       if (event.keyCode === 13) {
         if (/\S/.test(this._usernameInput.value)) {
-          this._usernameDiv.textContent = `Username: ${this._usernameInput.value}`
+          this._usernameDiv.innerHTML = `<h3>Username: ${this._usernameInput.value}</h3>`
+          this._username = this._usernameInput.value
           this._getQuestion()
         } else {
           this._usernameInput.focus()
@@ -136,8 +145,14 @@ export class QuizTime extends window.HTMLElement {
         }
         const question = this._questionDiv.querySelector('#question')
         question.textContent = myJson.question
+
         this._answerUrl = myJson.nextURL
-        console.log(this._answerUrl)
+
+        this._score += (20 - this._timerCount)
+        console.log(this._score)
+        this._timerCount = 20
+        clearInterval(this._timer)
+        this._timer = setInterval(this._timerUpdate.bind(this), 1000)
       })
   }
 
@@ -193,11 +208,24 @@ export class QuizTime extends window.HTMLElement {
       }
     }
   }
+
+  /**
+   * Updates the timer for the quiz and prints it.
+   *
+   * @memberof QuizTime
+   */
+  _timerUpdate () {
+    this._timerText.textContent = `Time left: ${this._timerCount}`
+    this._timerCount--
+    if (this._timerCount === -1) {
+      clearInterval(this._timer)
+      console.log('TIMES UP!')
+    }
+  }
 }
 
 window.customElements.define('quiz-time', QuizTime)
 
 // More comments...
 // Error handling on wrong answers
-// timer
-// keep score, local storage?
+// keep score, local storage - object data = { username: score }
