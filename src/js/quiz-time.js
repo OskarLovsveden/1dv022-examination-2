@@ -46,11 +46,13 @@ template.innerHTML = `
   <div id="content">
     <h2 id="playerName"></h2>
     <h2 id="question"></h2>
-    <h3 id="timer"></h3>
     <div id="currentQuestion"></div>
     <button id="submitAnswer">Submit Answer</button>
     <h1 id="answerKey"></h1>
+    <h3 id="timer"></h3>
+    <h1 id="timesUp"></h1>
   </div>
+  <button id="restart">Restart</button>
 </div>
 <div id="topListDiv">
   <h1>Toplist:</h1>
@@ -59,7 +61,7 @@ template.innerHTML = `
 `
 const inputTemplate = document.createElement('template')
 inputTemplate.innerHTML = `
-<label for="quiztime">Write here:</label><br>
+<label for="quiztime">Type your answer below:</label><br>
 <input type="text" id="quiztime" autocomplete="off">
 `
 const radioTemplate = document.createElement('template')
@@ -91,6 +93,7 @@ export class QuizTime extends window.HTMLElement {
     this._timerText = this.shadowRoot.querySelector('#timer')
     this._content = this.shadowRoot.querySelector('#content')
     this._topFiveDiv = this.shadowRoot.querySelector('#topFive')
+    this._restartBtn = this.shadowRoot.querySelector('#restart')
 
     this._questionUrl = 'http://vhost3.lnu.se:20080/question/1'
     this._answerUrl = ''
@@ -103,44 +106,52 @@ export class QuizTime extends window.HTMLElement {
     this._numOfQuestions = null
     this._correctanswers = null
     this._timer = null
+    this._timesUp = false
   }
 
   connectedCallback () {
     this._presentTopList()
+    this._addUsernameEvent()
+    this._usernameInput.focus()
 
     this._questionDiv.addEventListener('keypress', (event) => {
-      if (event.keyCode === 13) {
-        this._answer = event.target.value
+      if (!this._timesUp) {
+        if (event.keyCode === 13) {
+          this._answer = event.target.value
+          this._answerQuestion(this._answerUrl, {
+            answer: `${this._answer}`
+          })
+            .then((data) => {
+              this._getNextQuestion(data)
+            })
+          event.preventDefault()
+        }
+      }
+    })
+
+    this._submitAnswer.addEventListener('click', () => {
+      if (!this._timesUp) {
+        const inputs = this._currentQuestionDiv.querySelectorAll('input')
+        for (let i = 0; i < inputs.length; i++) {
+          if (inputs[i].checked) {
+            this._answer = inputs[i].value
+          }
+          if (inputs[i].type === 'text') {
+            this._answer = inputs[i].value
+          }
+        }
         this._answerQuestion(this._answerUrl, {
           answer: `${this._answer}`
         })
           .then((data) => {
             this._getNextQuestion(data)
           })
-        event.preventDefault()
       }
     })
 
-    this._submitAnswer.addEventListener('click', () => {
-      const inputs = this._currentQuestionDiv.querySelectorAll('input')
-      for (let i = 0; i < inputs.length; i++) {
-        if (inputs[i].checked) {
-          this._answer = inputs[i].value
-        }
-        if (inputs[i].type === 'text') {
-          this._answer = inputs[i].value
-        }
-      }
-      this._answerQuestion(this._answerUrl, {
-        answer: `${this._answer}`
-      })
-        .then((data) => {
-          this._getNextQuestion(data)
-        })
+    this._restartBtn.addEventListener('click', () => {
+      this._restart()
     })
-
-    this._addUsernameEvent()
-    this._usernameInput.focus()
   }
 
   /**
@@ -238,8 +249,9 @@ export class QuizTime extends window.HTMLElement {
     this._timerCount--
     if (this._timerCount === -1) {
       clearInterval(this._timer)
-      this._questionUrl = 'http://vhost3.lnu.se:20080/question/1'
-      this._score = null
+      this._timesUp = true
+
+      this.shadowRoot.querySelector('#timesUp').innerText = 'Times up... Restart to try again!'
     }
   }
 
@@ -301,6 +313,7 @@ export class QuizTime extends window.HTMLElement {
         this._correctanswers !== null
       ) {
         this._questionUrl = 'http://vhost3.lnu.se:20080/question/1'
+        clearInterval(this._timer)
 
         const gameWon = document.createElement('h1')
         gameWon.innerText = 'Good Job!'
@@ -361,8 +374,27 @@ export class QuizTime extends window.HTMLElement {
       this._topFiveDiv.appendChild(hr)
     }
   }
+
+  /**
+   * Restarts the game.
+   *
+   * @memberof QuizTime
+   */
+  _restart () {
+    this._questionUrl = 'http://vhost3.lnu.se:20080/question/1'
+    this._answer = null
+    this._timerCount = 20
+    this._score = null
+    this._numOfQuestions = null
+    this._correctanswers = null
+    this._timesUp = false
+    this._timer = null
+    this.shadowRoot.querySelector('#timesUp').innerText = ''
+
+    this._usernameDiv.style.zIndex = '1'
+    this._usernameInput.value = ''
+    this._usernameInput.focus()
+  }
 }
 
 window.customElements.define('quiz-time', QuizTime)
-
-// keep score, local storage - object data = { username: score }
