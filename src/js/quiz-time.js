@@ -250,7 +250,6 @@ export class QuizTime extends window.HTMLElement {
     if (this._timerCount === -1) {
       clearInterval(this._timer)
       this._timesUp = true
-
       this.shadowRoot.querySelector('#timesUp').innerText = 'Times up... Restart to try again!'
     }
   }
@@ -306,19 +305,16 @@ export class QuizTime extends window.HTMLElement {
       this._questionUrl = data.nextURL
       this._getQuestion()
     } else {
-      // store username and score as an object in this._playerStats
       if (
         this._numOfQuestions === this._correctanswers &&
         this._numOfQuestions !== null &&
         this._correctanswers !== null
       ) {
+        this.shadowRoot.querySelector('#timesUp').innerText = 'Good job! All questions were answered correctly!'
         this._questionUrl = 'http://vhost3.lnu.se:20080/question/1'
+
         clearInterval(this._timer)
 
-        const gameWon = document.createElement('h1')
-        gameWon.innerText = 'Good Job!'
-        this._content.textContent = ''
-        this._content.appendChild(gameWon)
         this._setStats()
         this._presentTopList()
       }
@@ -340,6 +336,7 @@ export class QuizTime extends window.HTMLElement {
    * @memberof QuizTime
    */
   _getStats () {
+    this._topList = []
     for (var i = 0; i < window.localStorage.length; i++) {
       const currentStat = {}
 
@@ -390,8 +387,10 @@ export class QuizTime extends window.HTMLElement {
     this._numOfQuestions = null
     this._correctanswers = null
     this._timesUp = false
-    this._timer = null
-    this.shadowRoot.querySelector('#timesUp').innerText = ''
+    clearInterval(this._timer)
+
+    this.shadowRoot.querySelector('#answerKey').innerHTML = ''
+    this.shadowRoot.querySelector('#timesUp').innerHTML = ''
 
     this._usernameDiv.style.zIndex = '1'
     this._usernameInput.value = ''
