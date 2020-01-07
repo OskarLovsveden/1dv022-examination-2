@@ -358,20 +358,22 @@ export class QuizTime extends window.HTMLElement {
    */
   _presentTopList () {
     this._topFiveDiv.textContent = ''
-    this._getStats()
+    if (window.localStorage.key(0)) {
+      this._getStats()
 
-    for (let i = 0; i < 5; i++) {
-      const hr = document.createElement('hr')
+      for (let i = 0; i < window.localStorage.length && i < 5; i++) {
+        const hr = document.createElement('hr')
 
-      const userh5 = document.createElement('h5')
-      userh5.innerText = `Username: ${this._topList[i].username}`
+        const userh5 = document.createElement('h5')
+        userh5.innerText = `Username: ${this._topList[i].username}`
 
-      const scoreh5 = document.createElement('h5')
-      scoreh5.innerText = `Time: ${this._topList[i].score}`
+        const scoreh5 = document.createElement('h5')
+        scoreh5.innerText = `Time: ${this._topList[i].score}`
 
-      this._topFiveDiv.appendChild(userh5)
-      this._topFiveDiv.appendChild(scoreh5)
-      this._topFiveDiv.appendChild(hr)
+        this._topFiveDiv.appendChild(userh5)
+        this._topFiveDiv.appendChild(scoreh5)
+        this._topFiveDiv.appendChild(hr)
+      }
     }
   }
 
