@@ -1,17 +1,57 @@
 const template = document.createElement('template')
 template.innerHTML = `
-<h1>Quiz Time!</h1>
+<style>
+  #usernameDiv {
+    position: absolute;
+    z-index: 1;
+    height: 100%;
+    width: 50%;
+    background-color: white;
+    text-align: center;
+  }
+  #questionDiv {
+    position: absolute;
+    left: 0;
+    z-index: 0;
+    height: 100%;
+    width: 50%;
+    background-color: white;
+    text-align: center;
+  }
+  #questionDiv input{
+    text-align: center;
+  }
+  #topListDiv {
+    position: absolute;
+    right: 0;
+    z-index: 0;
+    height: 100%;
+    width: 50%;
+    background-color: white;
+    text-align: center;
+  }
+</style>
+
 <div id="usernameDiv">
-  <label for="username">Username:</label><br>
+  <h1>Quiz Time!</h1>
+  <label for="username"><h2>Username:</h2></label>
   <input type="text" id="username" placeholder="Enter your name!">
   <button id="submitUsername">Start</button>
 </div>
 <div id="questionDiv">
+  <h1>Quiz Time!</h1>
+  <div id="content">
+    <h2 id="playerName"></h2>
     <h2 id="question"></h2>
     <h3 id="timer"></h3>
     <div id="currentQuestion"></div>
     <button id="submitAnswer">Submit Answer</button>
     <h1 id="answerKey"></h1>
+  </div>
+</div>
+<div id="topListDiv">
+  <h1>Toplist:</h1>
+  <ol id="top5"></ol>
 </div>
 `
 const inputTemplate = document.createElement('template')
@@ -46,6 +86,7 @@ export class QuizTime extends window.HTMLElement {
     this._submitUsernameBtn = this.shadowRoot.querySelector('#submitUsername')
     this._usernameInput = this.shadowRoot.querySelector('#username')
     this._timerText = this.shadowRoot.querySelector('#timer')
+    this._content = this.shadowRoot.querySelector('#content')
 
     this._questionUrl = 'http://vhost3.lnu.se:20080/question/1'
     this._answerUrl = ''
@@ -104,6 +145,8 @@ export class QuizTime extends window.HTMLElement {
    * @memberof QuizTime
    */
   async _getQuestion () {
+    this._numOfQuestions += 1
+
     this._currentQuestionDiv.innerHTML = ''
     const response = await window.fetch(this._questionUrl)
 
@@ -121,7 +164,6 @@ export class QuizTime extends window.HTMLElement {
         this._answerUrl = myJson.nextURL
 
         this._score += (20 - this._timerCount)
-        console.log(this._score)
         this._timerCount = 20
         clearInterval(this._timer)
         this._timer = setInterval(this._timerUpdate.bind(this), 1000)
@@ -191,7 +233,8 @@ export class QuizTime extends window.HTMLElement {
     this._timerCount--
     if (this._timerCount === -1) {
       clearInterval(this._timer)
-      console.log('TIMES UP!')
+      this._questionUrl = 'http://vhost3.lnu.se:20080/question/1'
+      this._score = null
     }
   }
 
@@ -220,7 +263,8 @@ export class QuizTime extends window.HTMLElement {
    */
   _validateUsername () {
     if (/\S/.test(this._usernameInput.value)) {
-      this._usernameDiv.innerHTML = `<h3>Username: ${this._usernameInput.value}</h3>`
+      this._usernameDiv.style.zIndex = '-1'
+      this._questionDiv.querySelector('#playerName').textContent = this._usernameInput.value
       this._username = this._usernameInput.value
       this._getQuestion()
     } else {
@@ -235,21 +279,43 @@ export class QuizTime extends window.HTMLElement {
    * @memberof QuizTime
    */
   _getNextQuestion (data) {
-    console.log('runs')
     this._questionDiv.querySelector('#answerKey').textContent = data.message
+
+    if (data.message === 'Correct answer!') {
+      this._correctanswers += 1
+    }
+
     if (data.nextURL) {
       this._questionUrl = data.nextURL
       this._getQuestion()
     } else {
-      // IF SCORE > 0, store username and score as an object in this._playerStats
-      if (this._score > 0) {
+      // store username and score as an object in this._playerStats
+      if (
+        this._numOfQuestions === this._correctanswers &&
+        this._numOfQuestions !== null &&
+        this._correctanswers !== null
+      ) {
+        this._questionUrl = 'http://vhost3.lnu.se:20080/question/1'
+
+        const gameWon = document.createElement('h1')
+        gameWon.innerText = 'Good Job!'
+        this._content.textContent = ''
+        this._content.appendChild(gameWon)
         console.log('store this shit')
+        this._storeStats()
       }
+    }
+  }
+
+  _storeStats () {
+    window.localStorage.setItem(this._username, this._score)
+    for (const i in window.localStorage) {
+      console.log(i)
+      console.log(window.localStorage[i])
     }
   }
 }
 
 window.customElements.define('quiz-time', QuizTime)
 
-// Error handling on wrong answers? not prio
 // keep score, local storage - object data = { username: score }
