@@ -301,6 +301,13 @@ export class QuizTime extends window.HTMLElement {
       this._correctanswers += 1
     }
 
+    if (data.message === 'Wrong answer! :(') {
+      clearInterval(this._timer)
+      this._timesUp = true
+
+      this.shadowRoot.querySelector('#timesUp').innerHTML = 'Wrong answers are bad! Start again :c'
+    }
+
     if (data.nextURL) {
       this._questionUrl = data.nextURL
       this._getQuestion()
