@@ -30,12 +30,15 @@ template.innerHTML = `
     background-color: white;
     text-align: center;
   }
+  #topListDiv hr {
+    width: 50%;
+  }
 </style>
 
 <div id="usernameDiv">
   <h1>Quiz Time!</h1>
   <label for="username"><h2>Username:</h2></label>
-  <input type="text" id="username" placeholder="Enter your name!">
+  <input type="text" id="username" placeholder="Enter your name!" autocomplete="off">
   <button id="submitUsername">Start</button>
 </div>
 <div id="questionDiv">
@@ -51,13 +54,13 @@ template.innerHTML = `
 </div>
 <div id="topListDiv">
   <h1>Toplist:</h1>
-  <ol id="top5"></ol>
+  <div id="topFive"></div>
 </div>
 `
 const inputTemplate = document.createElement('template')
 inputTemplate.innerHTML = `
 <label for="quiztime">Write here:</label><br>
-<input type="text" id="quiztime">
+<input type="text" id="quiztime" autocomplete="off">
 `
 const radioTemplate = document.createElement('template')
 radioTemplate.innerHTML = `
@@ -80,13 +83,14 @@ export class QuizTime extends window.HTMLElement {
     this.shadowRoot.appendChild(template.content.cloneNode(true))
 
     this._questionDiv = this.shadowRoot.querySelector('#questionDiv')
-    this._currentQuestionDiv = this._questionDiv.querySelector('#currentQuestion')
-    this._submitAnswer = this._questionDiv.querySelector('#submitAnswer')
+    this._currentQuestionDiv = this.shadowRoot.querySelector('#currentQuestion')
+    this._submitAnswer = this.shadowRoot.querySelector('#submitAnswer')
     this._usernameDiv = this.shadowRoot.querySelector('#usernameDiv')
     this._submitUsernameBtn = this.shadowRoot.querySelector('#submitUsername')
     this._usernameInput = this.shadowRoot.querySelector('#username')
     this._timerText = this.shadowRoot.querySelector('#timer')
     this._content = this.shadowRoot.querySelector('#content')
+    this._topFiveDiv = this.shadowRoot.querySelector('#topFive')
 
     this._questionUrl = 'http://vhost3.lnu.se:20080/question/1'
     this._answerUrl = ''
@@ -95,14 +99,15 @@ export class QuizTime extends window.HTMLElement {
     this._answer = null
     this._timerCount = 20
     this._score = null
-    this._playerStats = null
+    this._topList = []
     this._numOfQuestions = null
     this._correctanswers = null
-
     this._timer = null
   }
 
   connectedCallback () {
+    this._presentTopList()
+
     this._questionDiv.addEventListener('keypress', (event) => {
       if (event.keyCode === 13) {
         this._answer = event.target.value
@@ -301,17 +306,59 @@ export class QuizTime extends window.HTMLElement {
         gameWon.innerText = 'Good Job!'
         this._content.textContent = ''
         this._content.appendChild(gameWon)
-        console.log('store this shit')
-        this._storeStats()
+        this._setStats()
+        this._presentTopList()
       }
     }
   }
 
-  _storeStats () {
+  /**
+   * Stores the current players stats to localstorage.
+   *
+   * @memberof QuizTime
+   */
+  _setStats () {
     window.localStorage.setItem(this._username, this._score)
-    for (const i in window.localStorage) {
-      console.log(i)
-      console.log(window.localStorage[i])
+  }
+
+  /**
+   * Gets the scores from localstorage and sorts them in an array.
+   *
+   * @memberof QuizTime
+   */
+  _getStats () {
+    for (var i = 0; i < window.localStorage.length; i++) {
+      const currentStat = {}
+
+      currentStat.username = window.localStorage.key(i)
+      currentStat.score = Number(window.localStorage[window.localStorage.key(i)])
+
+      this._topList.push(currentStat)
+      this._topList.sort((a, b) => (a.score > b.score) ? 1 : ((b.score > a.score) ? -1 : 0))
+    }
+  }
+
+  /**
+   * Presents the current toplist in the DOM.
+   *
+   * @memberof QuizTime
+   */
+  _presentTopList () {
+    this._topFiveDiv.textContent = ''
+    this._getStats()
+
+    for (let i = 0; i < 5; i++) {
+      const hr = document.createElement('hr')
+
+      const userh5 = document.createElement('h5')
+      userh5.innerText = `Username: ${this._topList[i].username}`
+
+      const scoreh5 = document.createElement('h5')
+      scoreh5.innerText = `Time: ${this._topList[i].score}`
+
+      this._topFiveDiv.appendChild(userh5)
+      this._topFiveDiv.appendChild(scoreh5)
+      this._topFiveDiv.appendChild(hr)
     }
   }
 }
